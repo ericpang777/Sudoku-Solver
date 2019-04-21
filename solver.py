@@ -56,42 +56,34 @@ def product_check(products: List[List[int]]) -> bool:
 
 
 def solver(sudoku: List[List[int]], products: List[List[int]],
-           possible_nums: List[List[int]], row: int, col: int) -> bool:
+           possible_nums: List, index: int) -> bool:
 
     if product_check(products):
         return True
+    row = possible_nums[index][0]
+    col = possible_nums[index][1]
+    possible = possible_nums[index][2]
 
-    if sudoku[row][col] == 0:
-        for num in possible_nums[row*9 + col]:
-            if (products[ROW_PRODUCTS][row] % PRIME[num] != 0
-                and products[COL_PRODUCTS][col] % PRIME[num] != 0
-                and products[SUBGRID_PRODUCTS][row//3*3 + col//3] % PRIME[num] != 0):
+    for num in possible:
+        if (products[ROW_PRODUCTS][row] % PRIME[num] != 0
+            and products[COL_PRODUCTS][col] % PRIME[num] != 0
+            and products[SUBGRID_PRODUCTS][row//3*3 + col//3] % PRIME[num] != 0):
 
-                sudoku[row][col] = num
-                products[ROW_PRODUCTS][row] *= PRIME[num]
-                products[COL_PRODUCTS][col] *= PRIME[num]
-                products[SUBGRID_PRODUCTS][row//3*3 + col//3] *= PRIME[num]
+            sudoku[row][col] = num
+            products[ROW_PRODUCTS][row] *= PRIME[num]
+            products[COL_PRODUCTS][col] *= PRIME[num]
+            products[SUBGRID_PRODUCTS][row//3*3 + col//3] *= PRIME[num]
 
-                if col+1 == 9:
-                    if row+1 == 9:
-                        return True
-                    elif solver(sudoku, products, possible_nums, row+1, 0):
-                        return True
-                elif solver(sudoku, products, possible_nums, row, col+1):
-                    return True
-
-                sudoku[row][col] = 0
-                products[ROW_PRODUCTS][row] /= PRIME[num]
-                products[COL_PRODUCTS][col] /= PRIME[num]
-                products[SUBGRID_PRODUCTS][row//3*3 + col//3] /= PRIME[num]
-    else:
-        if col + 1 == 9:
-            if row + 1 == 9:
+            if index+1 == len(possible_nums):
                 return True
-            elif solver(sudoku, products, possible_nums, row+1, 0):
+            elif solver(sudoku, products, possible_nums, index+1):
                 return True
-        elif solver(sudoku, products, possible_nums, row, col+1):
-            return True
+
+            sudoku[row][col] = 0
+            products[ROW_PRODUCTS][row] /= PRIME[num]
+            products[COL_PRODUCTS][col] /= PRIME[num]
+            products[SUBGRID_PRODUCTS][row//3*3 + col//3] /= PRIME[num]
+
     return False
 
 
@@ -137,15 +129,18 @@ def solve_sudoku(sudoku: List[List[int]]) -> None:
                 if len(possible) == 0:
                     print("No valid solution possible")
                     return
-            possible_nums.append(possible)
+                possible_nums.append([i, j, possible])
 
+    possible_nums.sort(key=lambda x: len(x[2])) # Sort by least number of possible values
     copy = deepcopy(sudoku)
-    if solver(copy, products, possible_nums, 0, 0, 0):
-        for i in range(9):
-            for j in range(9):
-                sudoku[i][j] = copy[i][j]
+    if not solver(copy, products, possible_nums, 0):
+        print("No valid solution possible")
         return
-    print("No valid solution possible")
+
+    for i in range(9):
+        for j in range(9):
+            sudoku[i][j] = copy[i][j]
+
 
 if __name__ == "__main__":
     # Change to file read later
