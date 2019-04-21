@@ -7,7 +7,7 @@ avail_nums::avail_nums(int row, int col, vector<int> available_nums) {
     this->row = row;
     this->col = col;
     this->available_nums = available_nums;
-    length = available_nums.size();
+    length = this->available_nums.size();
 }
 
 void avail_nums::insert(int num) {
@@ -17,4 +17,16 @@ void avail_nums::insert(int num) {
 
 int avail_nums::len() {
     return length;
+}
+
+int avail_nums::get_row() {
+    return row;
+}
+
+int avail_nums::get_col() {
+    return col;
+}
+
+int avail_nums::get_index(int i) {
+    return available_nums[i];
 }

@@ -122,7 +122,7 @@ def solve_sudoku(sudoku: List[List[int]]) -> None:
                 for k in range(1, 10):
                     if (products[ROW_PRODUCTS][i] % PRIME[k] != 0
                         and products[COL_PRODUCTS][j] % PRIME[k] != 0
-                        and products[SUBGRID_PRODUCTS][i//3*3 + j//3]) % PRIME[k] != 0:
+                        and products[SUBGRID_PRODUCTS][i//3*3 + j//3] % PRIME[k] != 0):
 
                         possible.append(k)
                 if len(possible) == 0:
@@ -135,7 +135,7 @@ def solve_sudoku(sudoku: List[List[int]]) -> None:
     copy = deepcopy(sudoku)
     if not solver(copy, products, possible_nums, 0):
         return
-
+    # Change the 'not' later
     for i in range(9):
         for j in range(9):
             sudoku[i][j] = copy[i][j]

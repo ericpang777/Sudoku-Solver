@@ -1,15 +1,17 @@
 #include<vector>
 
-using namespace std;
-
 class avail_nums {
     public:
-        avail_nums(int, int, vector<int>);
+        avail_nums(int, int, std::vector<int>);
         void insert(int);
         int len();
+        int get_row();
+        int get_col();
+        int get_index(int);
+
     private: 
         int row;
         int col;
-        vector<int> available_nums;
+        std::vector<int> available_nums;
         int length;
 };
