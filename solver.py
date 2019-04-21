@@ -1,11 +1,12 @@
 from typing import List
 from copy import deepcopy
 
-PRIME = [1, 2, 3, 5, 7, 11, 13, 17, 19, 23] # 1 not prime
+PRIME = [1, 2, 3, 5, 7, 11, 13, 17, 19, 23]  # 1 not prime
 ROW_PRODUCTS = 0
 COL_PRODUCTS = 1
 SUBGRID_PRODUCTS = 2
 PRIME_PRODUCT = 223092870
+
 
 def print_sudoku(sudoku: List[List[int]]) -> None:
     for sublist in sudoku:
@@ -17,7 +18,7 @@ def print_sudoku(sudoku: List[List[int]]) -> None:
         print()
 
 
-def check_valid(sudoku: List[List[int]]) -> bool:
+def has_duplicate(sudoku: List[List[int]]) -> bool:
     # Check for duplicates
     for i in range(9):
         row_seen = set()
@@ -28,21 +29,21 @@ def check_valid(sudoku: List[List[int]]) -> bool:
             row_num = sudoku[i][j]
             if row_num != 0:
                 if row_num in row_seen:
-                    return False
+                    return True
                 row_seen.add(row_num)
 
             col_num = sudoku[j][i]
             if col_num != 0:
                 if col_num in col_seen:
-                    return False
+                    return True
                 col_seen.add(col_num)
-                
+                                    
             subgrid_num = sudoku[i//3*3 + j//3][i%3*3 + j%3]
             if subgrid_num != 0:
                 if subgrid_num in subgrid_seen:
-                    return False
+                    return True
                 subgrid_seen.add(subgrid_num)
-    return True
+    return False
 
 
 def product_check(products: List[List[int]]) -> bool:
@@ -91,16 +92,14 @@ def solve_sudoku(sudoku: List[List[int]]) -> None:
     # Check for nums not in 0-9
     for sublist in sudoku:
         for num in sublist:
-            if num > 9 or num < 0:
-                print("Not valid sudoku")
+            if num < 0 or 9 < num:
                 return
     # Check for duplicates
-    if not check_valid(sudoku):
-        print("Not valid sudoku")
+    if has_duplicate(sudoku):
         return
 
     # Compute products of each row/col/subgrid
-    products = [[],[],[]]
+    products = [[], [], []]
     for i in range(9):
         row_product = 1
         col_product = 1
@@ -120,21 +119,21 @@ def solve_sudoku(sudoku: List[List[int]]) -> None:
             num = sudoku[i][j]
             possible = []
             if num == 0:
-                for k in range(1,10):
+                for k in range(1, 10):
                     if (products[ROW_PRODUCTS][i] % PRIME[k] != 0
                         and products[COL_PRODUCTS][j] % PRIME[k] != 0
                         and products[SUBGRID_PRODUCTS][i//3*3 + j//3]) % PRIME[k] != 0:
 
                         possible.append(k)
                 if len(possible) == 0:
-                    print("No valid solution possible")
                     return
                 possible_nums.append([i, j, possible])
-
-    possible_nums.sort(key=lambda x: len(x[2])) # Sort by least number of possible values
+    if len(possible_nums) == 0:
+        return
+    
+    possible_nums.sort(key=lambda x: len(x[2]))  # Sort by least number of possible values
     copy = deepcopy(sudoku)
     if not solver(copy, products, possible_nums, 0):
-        print("No valid solution possible")
         return
 
     for i in range(9):
@@ -144,19 +143,21 @@ def solve_sudoku(sudoku: List[List[int]]) -> None:
 
 if __name__ == "__main__":
     # Change to file read later
-    sudoku = [[0, 0, 0, 0, 0, 0, 0, 0, 0],
-		     [0, 0, 0, 0, 0, 3, 0, 8, 5],
-		     [0, 0, 1, 0, 2, 0, 0, 0, 0],
-		     [0, 0, 0, 5, 0, 7, 0, 0, 0],
-		     [0, 0, 4, 0, 0, 0, 1, 0, 0],
-		     [0, 9, 0, 0, 0, 0, 0, 0, 0],
-		     [5, 0, 0, 0, 0, 0, 0, 7, 3],
-		     [0, 0, 2, 0, 1, 0, 0, 0, 0],
-		     [0, 0, 0, 0, 4, 0, 0, 0, 9]]
+
+    sudoku = [[5, 3, 0, 0, 7, 0, 0, 0, 0],
+              [6, 0, 0, 1, 9, 5, 0, 0, 0],
+              [0, 9, 8, 0, 0, 0, 0, 6, 0],
+              [8, 0, 0, 0, 6, 0, 0, 0, 3],
+              [4, 0, 0, 8, 0, 3, 0, 0, 1],
+              [7, 0, 0, 0, 2, 0, 0, 0, 6],
+              [0, 6, 0, 0, 0, 0, 2, 8, 0],
+              [0, 0, 0, 4, 1, 9, 0, 0, 5],
+              [0, 0, 0, 0, 8, 0, 0, 7, 9]]
+
     print_sudoku(sudoku)
-    import time
-    start = time.time()
+    #import time
+    #start = time.time()
     solve_sudoku(sudoku)
-    end = time.time()
-    print(end-start)
+    #end = time.time()
+    #print(end-start)
     print_sudoku(sudoku)
