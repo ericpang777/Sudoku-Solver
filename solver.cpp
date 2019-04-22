@@ -77,7 +77,7 @@ bool product_check(int products[3][9])
 
 bool solver(int sudoku[9][9], 
             int products[3][9], 
-            std::vector<avail_nums> possible_nums, int index) 
+            std::vector<avail_nums> &possible_nums, int index) 
 {
     if(product_check(products)) {
         return true;
@@ -184,15 +184,15 @@ void solve_sudoku(int sudoku[9][9])
 
 int main() 
 {
-    int sudoku[9][9] = {{5, 3, 0, 0, 7, 0, 0, 0, 0},
-                        {6, 0, 0, 1, 9, 5, 0, 0, 0},
-                        {0, 9, 8, 0, 0, 0, 0, 6, 0},
-                        {8, 0, 0, 0, 6, 0, 0, 0, 3},
-                        {4, 0, 0, 8, 0, 3, 0, 0, 1},
-                        {7, 0, 0, 0, 2, 0, 0, 0, 6},
-                        {0, 6, 0, 0, 0, 0, 2, 8, 0},
-                        {0, 0, 0, 4, 1, 9, 0, 0, 5},
-                        {0, 0, 0, 0, 8, 0, 0, 7, 9}};
+    int sudoku[9][9]={{0, 0, 0, 0, 0, 0, 0, 0, 0},
+		     {0, 0, 0, 0, 0, 3, 0, 8, 5},
+		     {0, 0, 1, 0, 2, 0, 0, 0, 0},
+		     {0, 0, 0, 5, 0, 7, 0, 0, 0},
+		     {0, 0, 4, 0, 0, 0, 1, 0, 0},
+		     {0, 9, 0, 0, 0, 0, 0, 0, 0},
+		     {5, 0, 0, 0, 0, 0, 0, 7, 3},
+		     {0, 0, 2, 0, 1, 0, 0, 0, 0},
+		     {0, 0, 0, 0, 4, 0, 0, 0, 9}};
     print_sudoku(sudoku);
     solve_sudoku(sudoku);
     print_sudoku(sudoku);
