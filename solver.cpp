@@ -6,8 +6,6 @@
 
 #include "avail_nums.h"
 
-const unsigned short FULL = 511; // 111111111
-
 void print_sudoku(int sudoku[9][9]) 
 {
     std::cout << "\n";
@@ -59,25 +57,10 @@ bool has_duplicate(int sudoku[9][9])
     return false;
 }
 
-bool is_complete(unsigned short data[3][9]) 
-{
-    for(int i = 0; i < 3; i++) {
-        for(int j = 0; j < 9; j++) {
-            if(data[i][j] != FULL) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
 bool solver(int sudoku[9][9], 
             unsigned short data[3][9], 
             std::vector<avail_nums> &possible_nums, int index) 
 {
-    if(is_complete(data)) {
-        return true;
-    }
     int row = possible_nums[index].get_row();
     int col = possible_nums[index].get_col();
     int length = possible_nums[index].len();
@@ -182,15 +165,15 @@ void solve_sudoku(int sudoku[9][9])
 
 int main() 
 {
-    int sudoku[9][9]={{0, 2, 0, 0, 0, 0, 0, 0, 0},
-		     {0, 0, 0, 6, 0, 0, 0, 0, 3},
-		     {0, 7, 4, 0, 8, 0, 0, 0, 0},
-		     {0, 0, 0, 0, 0, 3, 0, 0, 2},
-		     {0, 8, 0, 0, 4, 0, 0, 1, 0},
-		     {6, 0, 0, 5, 0, 0, 0, 0, 0},
-		     {0, 0, 0, 0, 1, 0, 7, 8, 0},
-		     {5, 0, 0, 0, 0, 9, 0, 0, 0},
-		     {0, 0, 0, 0, 0, 0, 0, 4, 0}};
+    int sudoku[9][9]={{3, 2, 6, 1, 5, 4, 8, 9, 7},
+		     {8, 1, 5, 6, 9, 7, 2, 4, 3},
+		     {9, 7, 4, 3, 8, 2, 6, 5, 1},
+		     {4, 5, 1, 8, 7, 3, 9, 6, 2},
+		     {7, 8, 2, 9, 4, 6, 3, 1, 5},
+		     {6, 3, 9, 5, 2, 1, 4, 7, 8},
+		     {2, 9, 3, 4, 1, 5, 7, 8, 6},
+		     {5, 6, 8, 7, 3, 9, 1, 2, 4},
+		     {1, 4, 7, 2, 6, 8, 5, 3, 9}};
     print_sudoku(sudoku);
     solve_sudoku(sudoku);
     print_sudoku(sudoku);
