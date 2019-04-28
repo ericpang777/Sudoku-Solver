@@ -6,11 +6,7 @@
 
 #include "avail_nums.h"
 
-const int PRIME[10] = {1, 2, 3, 5, 7, 11, 13, 17, 19, 23}; // 1 not prime
-const int ROW_PRODUCTS = 0;
-const int COL_PRODUCTS = 1;
-const int SUBGRID_PRODUCTS = 2;
-const int PRIME_PRODUCT = 223092870;
+const unsigned short FULL = 511; // 111111111
 
 void print_sudoku(int sudoku[9][9]) 
 {
@@ -63,11 +59,11 @@ bool has_duplicate(int sudoku[9][9])
     return false;
 }
 
-bool product_check(int products[3][9]) 
+bool is_complete(unsigned short data[3][9]) 
 {
     for(int i = 0; i < 3; i++) {
         for(int j = 0; j < 9; j++) {
-            if(products[i][j] != PRIME_PRODUCT) {
+            if(data[i][j] != FULL) {
                 return false;
             }
         }
@@ -76,10 +72,10 @@ bool product_check(int products[3][9])
 }
 
 bool solver(int sudoku[9][9], 
-            int products[3][9], 
+            unsigned short data[3][9], 
             std::vector<avail_nums> &possible_nums, int index) 
 {
-    if(product_check(products)) {
+    if(is_complete(data)) {
         return true;
     }
     int row = possible_nums[index].get_row();
@@ -88,25 +84,26 @@ bool solver(int sudoku[9][9],
 
     for(int i = 0; i < length; i++) {
         int num = possible_nums[index].get_index(i);
-        if(products[ROW_PRODUCTS][row] % PRIME[num] != 0
-           && products[COL_PRODUCTS][col] % PRIME[num] != 0
-           && products[SUBGRID_PRODUCTS][row/3*3 + col/3] % PRIME[num] != 0)
+        unsigned short power_of_2 = 1 << (num-1);
+        if((data[0][row] | power_of_2) != data[0][row]
+           && (data[1][col] | power_of_2) != data[1][col]
+           && (data[2][row/3*3 + col/3] | power_of_2) != data[2][row/3*3 + col/3])
         {
             sudoku[row][col] = num;
-            products[ROW_PRODUCTS][row] *= PRIME[num];
-            products[COL_PRODUCTS][col] *= PRIME[num];
-            products[SUBGRID_PRODUCTS][row/3*3 + col/3] *= PRIME[num];
+            data[0][row] |= power_of_2;
+            data[1][col] |= power_of_2;
+            data[2][row/3*3 + col/3] |= power_of_2;
 
-            if((unsigned)(index + 1) == possible_nums.size()) {
+            if((unsigned int)(index + 1) == possible_nums.size()) {
                 return true;
-            } else if(solver(sudoku, products, possible_nums, index + 1)) {
+            } else if(solver(sudoku, data, possible_nums, index + 1)) {
                 return true;
             }
 
             sudoku[row][col] = 0;
-            products[ROW_PRODUCTS][row] /= PRIME[num];
-            products[COL_PRODUCTS][col] /= PRIME[num];
-            products[SUBGRID_PRODUCTS][row/3*3 + col/3] /= PRIME[num];
+            data[0][row] ^= power_of_2;
+            data[1][col] ^= power_of_2;
+            data[2][row/3*3 + col/3] ^= power_of_2;
         }
     }
     return false;
@@ -132,20 +129,20 @@ void solve_sudoku(int sudoku[9][9])
         return;
     }
 
-    // Compute products of each row/col/subgrid
-    int products[3][9];
+    // Store numbers of each row/col/subgrid as 101010010, meaning whether 987654321 are in
+    unsigned short data[3][9];
     for(int i = 0; i < 9; i++) {
-        int row_product = 1;
-        int col_product = 1;
-        int subgrid_product = 1;
+        int row_data = 0;
+        int col_data = 0;
+        int subgrid_data = 0;
         for(int j = 0; j < 9; j++) {
-            row_product *= PRIME[sudoku[i][j]];
-            col_product *= PRIME[sudoku[j][i]];
-            subgrid_product *= PRIME[sudoku[i/3*3 + j/3][i%3*3 + j%3]];
+            row_data |= (1 << sudoku[i][j]) >> 1;
+            col_data |= (1 << sudoku[j][i]) >> 1;
+            subgrid_data |= (1 << sudoku[i/3*3 + j/3][i%3*3 + j%3]) >> 1;
         }
-        products[ROW_PRODUCTS][i] = row_product;
-        products[COL_PRODUCTS][i] = col_product;
-        products[SUBGRID_PRODUCTS][i] = subgrid_product;
+        data[0][i] = row_data;
+        data[1][i] = col_data;
+        data[2][i] = subgrid_data;
     }
 
     // Get list of possible numbers for each blank
@@ -156,9 +153,10 @@ void solve_sudoku(int sudoku[9][9])
             if(num == 0) {
                 std::vector<int> possible;
                 for(int k = 1; k < 10; k++) {
-                    if(products[ROW_PRODUCTS][i] % PRIME[k] != 0
-                       && products[COL_PRODUCTS][j] % PRIME[k] != 0
-                       && products[SUBGRID_PRODUCTS][i/3*3 + j/3] % PRIME[k] != 0)
+                    unsigned short power_of_2 = 1 << (k-1);
+                    if((data[0][i] | power_of_2) != data[0][i] 
+                       && (data[1][j] | power_of_2) != data[1][j]
+                       && (data[2][i/3*3 + j/3] | power_of_2) != data[2][i/3*3 + j/3])
                     {
                         possible.push_back(k);
                     }
@@ -177,22 +175,22 @@ void solve_sudoku(int sudoku[9][9])
     std::sort(possible_nums.begin(), possible_nums.end(), avail_nums_compare);
     int copy[9][9];
     memcpy(copy, sudoku, sizeof(int) * 81);
-    if(solver(copy, products, possible_nums, 0)) {
+    if(solver(copy, data, possible_nums, 0)) {
         memcpy(sudoku, copy, sizeof(int) * 81);
     }
 }
 
 int main() 
 {
-    int sudoku[9][9]={{0, 0, 0, 0, 0, 0, 0, 0, 0},
-		     {0, 0, 0, 0, 0, 3, 0, 8, 5},
-		     {0, 0, 1, 0, 2, 0, 0, 0, 0},
-		     {0, 0, 0, 5, 0, 7, 0, 0, 0},
-		     {0, 0, 4, 0, 0, 0, 1, 0, 0},
-		     {0, 9, 0, 0, 0, 0, 0, 0, 0},
-		     {5, 0, 0, 0, 0, 0, 0, 7, 3},
-		     {0, 0, 2, 0, 1, 0, 0, 0, 0},
-		     {0, 0, 0, 0, 4, 0, 0, 0, 9}};
+    int sudoku[9][9]={{0, 2, 0, 0, 0, 0, 0, 0, 0},
+		     {0, 0, 0, 6, 0, 0, 0, 0, 3},
+		     {0, 7, 4, 0, 8, 0, 0, 0, 0},
+		     {0, 0, 0, 0, 0, 3, 0, 0, 2},
+		     {0, 8, 0, 0, 4, 0, 0, 1, 0},
+		     {6, 0, 0, 5, 0, 0, 0, 0, 0},
+		     {0, 0, 0, 0, 1, 0, 7, 8, 0},
+		     {5, 0, 0, 0, 0, 9, 0, 0, 0},
+		     {0, 0, 0, 0, 0, 0, 0, 4, 0}};
     print_sudoku(sudoku);
     solve_sudoku(sudoku);
     print_sudoku(sudoku);
