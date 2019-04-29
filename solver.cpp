@@ -4,7 +4,21 @@
 #include<set>
 #include<vector>
 
-#include "avail_nums.h"
+struct avail_nums {
+    int row;
+    int col;
+    std::vector<int> available;
+    int length;
+};
+
+avail_nums new_avail_nums(int row, int col, std::vector<int> available, int length) {
+    avail_nums new_av;
+    new_av.row = row;
+    new_av.col = col;
+    new_av.available = available;
+    new_av.length = length;
+    return new_av;
+}
 
 void print_sudoku(int sudoku[9][9]) 
 {
@@ -61,12 +75,12 @@ bool solver(int sudoku[9][9],
             unsigned short data[3][9], 
             std::vector<avail_nums> &possible_nums, int index) 
 {
-    int row = possible_nums[index].get_row();
-    int col = possible_nums[index].get_col();
-    int length = possible_nums[index].len();
+    int row = possible_nums[index].row;
+    int col = possible_nums[index].col;
+    int length = possible_nums[index].length;
 
     for(int i = 0; i < length; i++) {
-        int num = possible_nums[index].get_index(i);
+        int num = possible_nums[index].available[i];
         unsigned short power_of_2 = 1 << (num-1);
         if((data[0][row] | power_of_2) != data[0][row]
            && (data[1][col] | power_of_2) != data[1][col]
@@ -94,7 +108,7 @@ bool solver(int sudoku[9][9],
 
 bool avail_nums_compare(avail_nums a, avail_nums b) 
 {
-    return a.len() < b.len();
+    return a.length < b.length;
 }
 
 void solve_sudoku(int sudoku[9][9]) 
@@ -147,7 +161,7 @@ void solve_sudoku(int sudoku[9][9])
                 if(possible.size() == 0) { 
                     return; 
                 }
-                possible_nums.push_back(avail_nums(i, j, possible));
+                possible_nums.push_back(new_avail_nums(i, j, possible, possible.size()));
             }
         }
     }
@@ -165,15 +179,15 @@ void solve_sudoku(int sudoku[9][9])
 
 int main() 
 {
-    int sudoku[9][9]={{3, 2, 6, 1, 5, 4, 8, 9, 7},
-		     {8, 1, 5, 6, 9, 7, 2, 4, 3},
-		     {9, 7, 4, 3, 8, 2, 6, 5, 1},
-		     {4, 5, 1, 8, 7, 3, 9, 6, 2},
-		     {7, 8, 2, 9, 4, 6, 3, 1, 5},
-		     {6, 3, 9, 5, 2, 1, 4, 7, 8},
-		     {2, 9, 3, 4, 1, 5, 7, 8, 6},
-		     {5, 6, 8, 7, 3, 9, 1, 2, 4},
-		     {1, 4, 7, 2, 6, 8, 5, 3, 9}};
+    int sudoku[9][9]={{0, 2, 0, 0, 0, 0, 0, 0, 0},
+		     {0, 0, 0, 6, 0, 0, 0, 0, 3},
+		     {0, 7, 4, 0, 8, 0, 0, 0, 0},
+		     {0, 0, 0, 0, 0, 3, 0, 0, 2},
+		     {0, 8, 0, 0, 4, 0, 0, 1, 0},
+		     {6, 0, 0, 5, 0, 0, 0, 0, 0},
+		     {0, 0, 0, 0, 1, 0, 7, 8, 0},
+		     {5, 0, 0, 0, 0, 9, 0, 0, 0},
+		     {0, 0, 0, 0, 0, 0, 0, 4, 0}};
     print_sudoku(sudoku);
     solve_sudoku(sudoku);
     print_sudoku(sudoku);
