@@ -4,6 +4,8 @@
 #include<set>
 #include<vector>
 
+const unsigned short POWEROF2[9] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
+
 struct avail_nums {
     int row;
     int col;
@@ -81,7 +83,7 @@ bool solver(int sudoku[9][9],
 
     for(int i = 0; i < length; i++) {
         int num = possible_nums[index].available[i];
-        unsigned short power_of_2 = 1 << (num-1);
+        unsigned short power_of_2 = POWEROF2[num-1];
         if((data[0][row] | power_of_2) != data[0][row]
            && (data[1][col] | power_of_2) != data[1][col]
            && (data[2][row/3*3 + col/3] | power_of_2) != data[2][row/3*3 + col/3])
@@ -91,12 +93,9 @@ bool solver(int sudoku[9][9],
             data[1][col] |= power_of_2;
             data[2][row/3*3 + col/3] |= power_of_2;
 
-            if((unsigned int)(index + 1) == possible_nums.size()) {
-                return true;
-            } else if(solver(sudoku, data, possible_nums, index + 1)) {
+            if((unsigned int)(index + 1) == possible_nums.size() || solver(sudoku, data, possible_nums, index + 1)) {
                 return true;
             }
-
             sudoku[row][col] = 0;
             data[0][row] ^= power_of_2;
             data[1][col] ^= power_of_2;
@@ -127,13 +126,14 @@ void solve_sudoku(int sudoku[9][9])
     }
 
     // Store numbers of each row/col/subgrid as 101010010, meaning whether 987654321 are in
+    // Data stored as row, col, subgrid as [0], [1], [2] respectively
     unsigned short data[3][9];
     for(int i = 0; i < 9; i++) {
         int row_data = 0;
         int col_data = 0;
         int subgrid_data = 0;
         for(int j = 0; j < 9; j++) {
-            row_data |= (1 << sudoku[i][j]) >> 1;
+            row_data |= (1 << sudoku[i][j]) >> 1; // max(2^(x-1), 0)
             col_data |= (1 << sudoku[j][i]) >> 1;
             subgrid_data |= (1 << sudoku[i/3*3 + j/3][i%3*3 + j%3]) >> 1;
         }
@@ -150,7 +150,7 @@ void solve_sudoku(int sudoku[9][9])
             if(num == 0) {
                 std::vector<int> possible;
                 for(int k = 1; k < 10; k++) {
-                    unsigned short power_of_2 = 1 << (k-1);
+                    unsigned short power_of_2 = POWEROF2[k-1];
                     if((data[0][i] | power_of_2) != data[0][i] 
                        && (data[1][j] | power_of_2) != data[1][j]
                        && (data[2][i/3*3 + j/3] | power_of_2) != data[2][i/3*3 + j/3])
