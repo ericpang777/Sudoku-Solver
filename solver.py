@@ -125,18 +125,18 @@ def solve_sudoku(sudoku: List[List[int]]) -> None:
             sudoku[i][j] = copy[i][j]
 
 
+def read_file(sudoku: List[List[int]], file_name: str) -> None:
+    file = open("sudoku.txt", "r")
+    for line in file:
+        split = line.rstrip()[:-1].split(",")
+        sudoku.append(list(map(int, split)))
+
+
 if __name__ == "__main__":
     # Change to file read later
 
-    sudoku = [[0, 2, 0, 0, 0, 0, 0, 0, 0],
-		     [0, 0, 0, 6, 0, 0, 0, 0, 3],
-		     [0, 7, 4, 0, 8, 0, 0, 0, 0],
-		     [0, 0, 0, 0, 0, 3, 0, 0, 2],
-		     [0, 8, 0, 0, 4, 0, 0, 1, 0],
-		     [6, 0, 0, 5, 0, 0, 0, 0, 0],
-		     [0, 0, 0, 0, 1, 0, 7, 8, 0],
-		     [5, 0, 0, 0, 0, 9, 0, 0, 0],
-             [0, 0, 0, 0, 0, 0, 0, 4, 0]]
+    sudoku = []
+    read_file(sudoku, "sudoku.txt")
 
     print_sudoku(sudoku)
     #import time
