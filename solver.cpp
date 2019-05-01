@@ -1,7 +1,9 @@
 #include<algorithm>
 #include<cstring>
+#include<fstream>
 #include<iostream>
 #include<set>
+#include<string>
 #include<vector>
 
 const unsigned short POWEROF2[9] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
@@ -84,7 +86,7 @@ bool solver(int sudoku[9][9],
     for(int i = 0; i < length; i++) {
         int num = possible_nums[index].available[i];
         unsigned short power_of_2 = POWEROF2[num-1];
-        if((data[0][row] | power_of_2) != data[0][row]
+        if(   (data[0][row] | power_of_2) != data[0][row]
            && (data[1][col] | power_of_2) != data[1][col]
            && (data[2][row/3*3 + col/3] | power_of_2) != data[2][row/3*3 + col/3])
         {
@@ -151,7 +153,7 @@ void solve_sudoku(int sudoku[9][9])
                 std::vector<int> possible;
                 for(int k = 1; k < 10; k++) {
                     unsigned short power_of_2 = POWEROF2[k-1];
-                    if((data[0][i] | power_of_2) != data[0][i] 
+                    if(	  (data[0][i] | power_of_2) != data[0][i] 
                        && (data[1][j] | power_of_2) != data[1][j]
                        && (data[2][i/3*3 + j/3] | power_of_2) != data[2][i/3*3 + j/3])
                     {
@@ -177,17 +179,23 @@ void solve_sudoku(int sudoku[9][9])
     }
 }
 
+void read_file(int sudoku[9][9], std::string file_name) {
+	std::ifstream file(file_name);
+	if(file.is_open()) {
+		std::string line;
+        int i = 0;
+		while(std::getline(file, line, ',')) {
+			sudoku[i/9][i%9] = std::stoi(line);
+            i++;
+		}
+	}
+}
+
 int main() 
 {
-    int sudoku[9][9]={{0, 2, 0, 0, 0, 0, 0, 0, 0},
-		     {0, 0, 0, 6, 0, 0, 0, 0, 3},
-		     {0, 7, 4, 0, 8, 0, 0, 0, 0},
-		     {0, 0, 0, 0, 0, 3, 0, 0, 2},
-		     {0, 8, 0, 0, 4, 0, 0, 1, 0},
-		     {6, 0, 0, 5, 0, 0, 0, 0, 0},
-		     {0, 0, 0, 0, 1, 0, 7, 8, 0},
-		     {5, 0, 0, 0, 0, 9, 0, 0, 0},
-		     {0, 0, 0, 0, 0, 0, 0, 4, 0}};
+    int sudoku[9][9];
+	std::string file_name = "sudoku.txt";
+	read_file(sudoku, file_name);
     print_sudoku(sudoku);
     solve_sudoku(sudoku);
     print_sudoku(sudoku);
