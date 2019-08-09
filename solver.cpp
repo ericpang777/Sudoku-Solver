@@ -180,22 +180,22 @@ void solve_sudoku(int sudoku[9][9])
 }
 
 void read_file(int sudoku[9][9], std::string file_name) {
-	std::ifstream file(file_name);
-	if(file.is_open()) {
-		std::string line;
+    std::ifstream file(file_name);
+    if(file.is_open()) {
+        std::string line;
         int i = 0;
-		while(std::getline(file, line, ',')) {
-			sudoku[i/9][i%9] = std::stoi(line);
+        while(std::getline(file, line, ',')) {
+            sudoku[i/9][i%9] = std::stoi(line);
             i++;
-		}
-	}
+        }
+    }
 }
 
 int main() 
 {
     int sudoku[9][9];
-	std::string file_name = "sudoku.txt";
-	read_file(sudoku, file_name);
+    std::string file_name = "sudoku.txt";
+    read_file(sudoku, file_name);
     print_sudoku(sudoku);
     solve_sudoku(sudoku);
     print_sudoku(sudoku);
