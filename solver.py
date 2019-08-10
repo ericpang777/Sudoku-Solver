@@ -128,7 +128,7 @@ def solve_sudoku(sudoku: List[List[int]]) -> None:
 def read_file(sudoku: List[List[int]], file_name: str) -> None:
     file = open("sudoku.txt", "r")
     for line in file:
-        split = line.rstrip()[:-1].split(",")
+        split = line.rstrip().split(" ")
         sudoku.append(list(map(int, split)))
 
 

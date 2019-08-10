@@ -184,7 +184,7 @@ void read_file(int sudoku[9][9], std::string file_name) {
     if(file.is_open()) {
         std::string line;
         int i = 0;
-        while(std::getline(file, line, ',')) {
+        while(std::getline(file, line, ' ')) {
             sudoku[i/9][i%9] = std::stoi(line);
             i++;
         }
