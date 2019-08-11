@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-image = cv2.imread("img_sudoku/sudoku3.jpg", 1)
+image = cv2.imread("img_sudoku/sudoku4.jpg", 1)
 image = cv2.resize(image, (700, (int)(700/np.size(image, 1) * np.size(image, 0)))) # 700 is x resolution, maintain aspect ratio
 image_edit = cv2.medianBlur(image, 5)
 image_edit = cv2.cvtColor(image_edit, cv2.COLOR_BGR2GRAY)
@@ -31,7 +31,13 @@ for point in c_list:
     if x + y > bot_right[0] + bot_right[1]:
         bot_right = (x ,y)
 
+corners_sudoku = np.float32([top_left, top_right, bot_left, bot_right])
+corners_image = np.float32([[0,0], [700,0], [0,700], [700,700]])
+matrix = cv2.getPerspectiveTransform(corners_sudoku, corners_image)
+image_edit = cv2.warpPerspective(image, matrix, (700, 700))
+
 cv2.drawContours(image, max_c, -1, (0,255,0), 3)
 cv2.imshow("image", image)
+cv2.imshow("edit", image_edit)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
