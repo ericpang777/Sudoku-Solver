@@ -59,7 +59,7 @@ def extract_numbers(image):
     return grid
 
 
-image, image_edit = process_image("img_sudoku/sudoku4.jpg")
+image, image_edit = process_image("img_sudoku/sudoku3.jpg")
 c_max = find_max_area_contour(image_edit)
 corners = find_corners(c_max)
 image_edit = extract_sudoku(image, corners)
