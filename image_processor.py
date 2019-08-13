@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from tensorflow import keras
 
 
 def process_image(src):
@@ -43,28 +44,63 @@ def find_corners(c_max):
     return [top_left, top_right, bot_left, bot_right]
 
 
-def extract_sudoku(image, corners):
-    corners_sudoku = np.float32(corners)
+def extract_sudoku(image_edit, image):
+    c_max = find_max_area_contour(image_edit)
+    corners_sudoku = find_corners(c_max)
+    corners_sudoku = np.float32(corners_sudoku)
     corners_image = np.float32([[0,0], [700,0], [0,700], [700,700]])
     matrix = cv2.getPerspectiveTransform(corners_sudoku, corners_image)
-    return cv2.warpPerspective(image, matrix, (700, 700))
+    image = cv2.warpPerspective(image, matrix, (700, 700))
+    return image
+
+
+def remove_gridlines(image):
+    edges = cv2.Canny(image, 50, 80, apertureSize=3)
+
+    lines = cv2.HoughLines(edges, 1, np.pi / 180, 200)
+    for line in lines:
+        for rho, theta in line:
+            a = np.cos(theta)
+            b = np.sin(theta)
+            x0 = a * rho
+            y0 = b * rho
+            x1 = int(x0 + 1000 * (-b))
+            y1 = int(y0 + 1000 * (a))
+            x2 = int(x0 - 1000 * (-b))
+            y2 = int(y0 - 1000 * (a))
+
+            cv2.line(image, (x1, y1), (x2, y2), (255, 255, 255), 5)
+    return image
 
 
 def extract_numbers(image):
+    model = keras.models.load_model("models/mnist_model.h5")
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    image = cv2.bitwise_not(image)
     grid = []
     for i in range(81):
         y = (int)(i//9 * 700/9)
         x = (int)(i%9 * 700/9)
-        grid.append(image[y:y+77, x:x+77])
+        image_crop = image[y:y+77, x:x+77]
+        image_crop = cv2.dilate(image_crop, np.ones((2, 2), np.uint8), iterations=1)
+        contours, hierarchy = cv2.findContours(image_crop, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        c_max = max(contours, key=cv2.contourArea)
+        print(cv2.contourArea(c_max))
+        cv2.imshow((str)(i), image_crop)
+        image_crop = cv2.resize(image_crop, (28, 28))
+        image_crop = np.asarray(image_crop)
+        image_crop = np.expand_dims(image_crop, axis=0)
+        image_crop = np.expand_dims(image_crop, axis=3)
+        grid.append(model.predict(image_crop).argmax())
     return grid
 
 
-image, image_edit = process_image("img_sudoku/sudoku3.jpg")
-c_max = find_max_area_contour(image_edit)
-corners = find_corners(c_max)
-image_edit = extract_sudoku(image, corners)
-
-cv2.drawContours(image, c_max, -1, (0,255,0), 3)
+image, image_edit = process_image("img_sudoku/sudoku4.jpg")
+image_edit = extract_sudoku(image_edit, image)
+cv2.imshow("b", image_edit)
+image_edit = remove_gridlines(image_edit)
+a = extract_numbers(image_edit)
+print(a)
 cv2.imshow("image", image)
 cv2.imshow("edit", image_edit)
 cv2.waitKey(0)

@@ -6,7 +6,6 @@ from tensorflow import keras
 train_images = train_images.reshape((60000, 28, 28, 1))
 test_images = test_images.reshape((10000, 28, 28, 1))
 
-# Normalize pixel values to be between 0 and 1
 train_images, test_images = train_images / 255.0, test_images / 255.0
 
 model = keras.models.Sequential()
@@ -25,4 +24,4 @@ model.compile(optimizer='adam',
               metrics=['accuracy'])
 
 model.fit(train_images, train_labels, epochs=5)
-model.save("mnist_model.h5")
+model.save("models/mnist_model.h5")
