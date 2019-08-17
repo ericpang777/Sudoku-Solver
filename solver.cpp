@@ -1,12 +1,11 @@
 #include<algorithm>
+#include<chrono>
 #include<cstring>
 #include<fstream>
 #include<iostream>
 #include<set>
 #include<string>
 #include<vector>
-
-const unsigned short POWEROF2[9] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
 
 struct avail_nums {
     int row;
@@ -42,33 +41,30 @@ void print_sudoku(int sudoku[9][9])
 bool has_duplicate(int sudoku[9][9]) 
 {
     for(int i = 0; i < 9; i++) {
-        std::set<int> row_seen;
-        std::set<int> col_seen;
-        std::set<int> subgrid_seen;
+        unsigned short row_seen = 0;
+        unsigned short col_seen = 0;
+        unsigned short subgrid_seen = 0;
 
         for(int j = 0; j < 9; j++) {
-            int row_num = sudoku[i][j];
-            if(row_num != 0) {
-                if(row_seen.find(row_num) != row_seen.end()) {
+            if(sudoku[i][j] != 0) {
+                if((row_seen & (unsigned short)(1 << (sudoku[i][j]-1))) > 0) {
                     return true;
                 }
-                row_seen.insert(row_num);
+                row_seen |= 1 << (sudoku[i][j]-1);
             }
 
-            int col_num = sudoku[j][i];
-            if(col_num != 0) {
-                if(col_seen.find(col_num) != col_seen.end()) {
+            if(sudoku[j][i] != 0) {
+                if((col_seen & (unsigned short)(1 << (sudoku[j][i]-1))) > 0) {
                     return true;
                 }
-                col_seen.insert(col_num);
+                col_seen |= 1 << (sudoku[j][i]-1);
             }
 
-            int subgrid_num = sudoku[i/3*3 + j/3][i%3*3 + j%3];
-            if(subgrid_num != 0) {
-                if(subgrid_seen.find(subgrid_num) != subgrid_seen.end()) {
+            if(sudoku[i/3*3 + j/3][i%3*3 + j%3] != 0) {
+                if((subgrid_seen & (unsigned short)(1 << (sudoku[i/3*3 + j/3][i%3*3 + j%3]-1))) > 0) {
                     return true;
                 }
-                subgrid_seen.insert(subgrid_num);
+                subgrid_seen |= 1 << (sudoku[i/3*3 + j/3][i%3*3 + j%3]-1);
             }
         }
     }
@@ -83,9 +79,10 @@ bool solver(int sudoku[9][9],
     int col = possible_nums[index].col;
     int length = possible_nums[index].length;
 
+    unsigned short power_of_2;
     for(int i = 0; i < length; i++) {
         int num = possible_nums[index].available[i];
-        unsigned short power_of_2 = POWEROF2[num-1];
+        power_of_2 = 1 << (num-1);
         if(   (data[0][row] | power_of_2) != data[0][row]
            && (data[1][col] | power_of_2) != data[1][col]
            && (data[2][row/3*3 + col/3] | power_of_2) != data[2][row/3*3 + col/3])
@@ -115,15 +112,17 @@ bool avail_nums_compare(avail_nums a, avail_nums b)
 void solve_sudoku(int sudoku[9][9]) 
 {
     // Check nums not in 0-9
-    for(int i = 0; i < 9; i++) {
-        for(int j = 0; j < 9; j++) {
-            if(sudoku[i][j] < 0 || 9 < sudoku[i][j]) {
-                return;
-            }
-        }
-    }
+    //for(int i = 0; i < 9; i++) {
+    //    for(int j = 0; j < 9; j++) {
+    //       if(sudoku[i][j] < 0 || 9 < sudoku[i][j]) {
+    //            return;
+    //        }
+    //    }
+    //}
+
     // Check dupliates
     if(has_duplicate(sudoku)) {
+        std::cout << "He";
         return;
     }
 
@@ -152,7 +151,7 @@ void solve_sudoku(int sudoku[9][9])
             if(num == 0) {
                 std::vector<int> possible;
                 for(int k = 1; k < 10; k++) {
-                    unsigned short power_of_2 = POWEROF2[k-1];
+                    unsigned short power_of_2 = 1 << (k-1);
                     if(	  (data[0][i] | power_of_2) != data[0][i] 
                        && (data[1][j] | power_of_2) != data[1][j]
                        && (data[2][i/3*3 + j/3] | power_of_2) != data[2][i/3*3 + j/3])
@@ -180,22 +179,45 @@ void solve_sudoku(int sudoku[9][9])
 }
 
 void read_file(int sudoku[9][9], std::string file_name) {
-    std::ifstream file(file_name);
-    if(file.is_open()) {
-        std::string line;
-        int i = 0;
-        while(std::getline(file, line, ' ')) {
-            sudoku[i/9][i%9] = std::stoi(line);
-            i++;
-        }
+    std::ifstream inFile(file_name);
+    std::string line;
+    int i = 0;
+    while(std::getline(inFile, line, ',')) {
+        sudoku[i/9][i%9] = std::stoi(line);    
+        i++;
     }
+}
+
+void test_big_file(int sudoku[9][9]) {
+    std::ifstream inFile("test_sudoku/sudoku_big.txt");
+    std::ofstream outFile("test_sudoku/result.txt");
+    std::string line;
+    while(std::getline(inFile, line)) {
+        line = line.substr(0, line.length()-1);
+        for(int i = 0; i < 81; i++) {
+            if(line[i] == '.') 
+                sudoku[i/9][i%9] = 0;
+            else       
+                sudoku[i/9][i%9] = (int)line[i] - 48;
+        }
+        
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        solve_sudoku(sudoku);
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        char s[81];
+        for(int i = 0; i < 81; i++) {
+            s[i] = (char)(sudoku[i/9][i%9] + 48);
+        }
+        outFile << s << ", time=" << std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count() << "ns" << std::endl;
+
+    }  
 }
 
 int main() 
 {
     int sudoku[9][9];
-    std::string file_name = "sudoku.txt";
-    read_file(sudoku, file_name);
+    read_file(sudoku, "sudoku.txt");
+    //test_big_file(sudoku);
     print_sudoku(sudoku);
     solve_sudoku(sudoku);
     print_sudoku(sudoku);
