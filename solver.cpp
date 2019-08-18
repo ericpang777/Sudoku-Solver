@@ -61,10 +61,10 @@ bool solver(int sudoku[9][9], int data[3][9], std::vector<int> &indices, int idx
 {
     int power_of_2;
     int sq_num = indices[idx];
-    int orig_avail = avail[sq_num];
-    while(avail[sq_num] != 0) {
-        power_of_2 = avail[sq_num] & -avail[sq_num];
-        avail[sq_num] ^= power_of_2;
+    int avail = (~(data[0][sq_num/9] | data[1][sq_num%9] | data[2][sq_num/3%3 + sq_num/27*3]) >> 1 << 1) - 4294966272; // 4294966272 is sum of 2^i from i = 10 to 31
+    while(avail != 0) {
+        power_of_2 = avail & -avail;
+        avail ^= power_of_2;
         if(    (data[0][sq_num/9] & power_of_2)                 == 0
             && (data[1][sq_num%9] & power_of_2)                 == 0
             && (data[2][sq_num/3%3 + sq_num/27*3] & power_of_2) == 0)
@@ -82,7 +82,6 @@ bool solver(int sudoku[9][9], int data[3][9], std::vector<int> &indices, int idx
             data[2][sq_num/3%3 + sq_num/27*3] ^= power_of_2;
         }
     }
-    avail[sq_num] = orig_avail;
     return false;
 }
 
@@ -90,7 +89,7 @@ bool avail_compare(int a, int b)
 {
     a = avail[a];
     b = avail[b];
-    return __builtin_popcount(a) < __builtin_popcount(b);
+    return __builtin_popcount(a) > __builtin_popcount(b);
 }
 
 void solve_sudoku(int sudoku[9][9]) 
@@ -135,7 +134,7 @@ void solve_sudoku(int sudoku[9][9])
     for(int i = 0; i < 81; i++) {
         if(sudoku[i/9][i%9] == 0) {
             indices.push_back(i);
-            avail[i] = (~(data[0][i/9] | data[1][i%9] | data[2][i/3%3 + i/27*3]) >> 1 << 1) - 4294966272; // 4294966272 is sum of 2^i from i = 10 to 31
+            avail[i] = data[0][i/9] | data[1][i%9] | data[2][i/3%3 + i/27*3];
         }
     }
     if(indices.size() == 0)
@@ -160,9 +159,10 @@ void read_file(int sudoku[9][9], std::string file_name) {
 }
 
 void test_big_file(int sudoku[9][9]) {
-    std::ifstream inFile("test_sudoku/sudoku_big.txt");
-    //std::ofstream outFile("test_sudoku/result.txt");
+    std::ifstream inFile("sudoku.txt");
+    std::ofstream outFile("result.txt");
     std::string line;
+    int count = 0;
     while(std::getline(inFile, line)) {
         line = line.substr(0, line.length()-1);
         for(int i = 0; i < 81; i++) {
@@ -172,17 +172,18 @@ void test_big_file(int sudoku[9][9]) {
                 sudoku[i/9][i%9] = (int)line[i] - 48;
         }
         
-        //std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         solve_sudoku(sudoku);
-        /*std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         char s[81];
         for(int i = 0; i < 81; i++) {
             s[i] = (char)(sudoku[i/9][i%9] + 48);
         }
         outFile << s << ", time=" << std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count() << "ms" << std::endl;
-        */
+        count += std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count();
         
     }  
+    std::cout << count << "ms";
     inFile.close();
     //outFile.close();
 }
