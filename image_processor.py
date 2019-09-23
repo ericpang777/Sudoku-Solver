@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from tensorflow import keras
+from solver import read_file
 
 
 def process_image(src):
@@ -11,7 +12,7 @@ def process_image(src):
     image_edit = cv2.adaptiveThreshold(image_edit, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
     image_edit = cv2.bitwise_not(image_edit)
     image_edit = cv2.dilate(image_edit, np.ones((2, 2), np.uint8), iterations=1)
-    return (image, image_edit)
+    return image, image_edit
 
 
 def find_max_area_contour(image):
@@ -64,10 +65,10 @@ def remove_gridlines(image):
             b = np.sin(theta)
             x0 = a * rho
             y0 = b * rho
-            x1 = int(x0 + 1000 * (-b))
-            y1 = int(y0 + 1000 * (a))
-            x2 = int(x0 - 1000 * (-b))
-            y2 = int(y0 - 1000 * (a))
+            x1 = int(x0 + 1000*(-b))
+            y1 = int(y0 + 1000*(a))
+            x2 = int(x0 - 1000*(-b))
+            y2 = int(y0 - 1000*(a))
 
             cv2.line(image, (x1, y1), (x2, y2), (255, 255, 255), 5)
     return image
@@ -78,29 +79,43 @@ def extract_numbers(image):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     image = cv2.bitwise_not(image)
     grid = []
-    for i in range(81):
-        y = (int)(i//9 * 700/9)
-        x = (int)(i%9 * 700/9)
-        image_crop = image[y:y+77, x:x+77]
-        image_crop = cv2.dilate(image_crop, np.ones((2, 2), np.uint8), iterations=1)
-        contours, hierarchy = cv2.findContours(image_crop, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        c_max = max(contours, key=cv2.contourArea)
-        print(cv2.contourArea(c_max))
-        cv2.imshow((str)(i), image_crop)
-        image_crop = cv2.resize(image_crop, (28, 28))
-        image_crop = np.asarray(image_crop)
-        image_crop = np.expand_dims(image_crop, axis=0)
-        image_crop = np.expand_dims(image_crop, axis=3)
-        grid.append(model.predict(image_crop).argmax())
+    for i in range(9):
+        for j in range(9):
+            y = (int)(i * 700/9)
+            x = (int)(j * 700/9)
+            image_crop = image[y:y+77, x:x+77]
+
+            image_crop = cv2.dilate(image_crop, np.ones((2, 2), np.uint8), iterations=1)
+            contours, hierarchy = cv2.findContours(image_crop, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            if len(contours) > 0:
+                c_max = max(contours, key=cv2.contourArea)
+                print(cv2.contourArea(c_max))
+                for i in range(len(contours)):
+                    if contours[i].all() != c_max.all():
+                        image_crop = cv2.drawContours(image_crop, contours, i, (0, 0, 0), 3)
+
+            ret, image_crop = cv2.threshold(image_crop, 127, 255, cv2.THRESH_BINARY)
+            cv2.imshow((str)(i*9 + j), image_crop)
+            image_crop = cv2.resize(image_crop, (28, 28))
+            image_crop = np.asarray(image_crop)
+            image_crop = np.expand_dims(image_crop, axis=0)
+            image_crop = np.expand_dims(image_crop, axis=3)
+            grid.append(model.predict(image_crop).argmax())
     return grid
 
 
-image, image_edit = process_image("img_sudoku/sudoku4.jpg")
+image, image_edit = process_image("img_sudoku/sudoku1.jpg")
 image_edit = extract_sudoku(image_edit, image)
 cv2.imshow("b", image_edit)
 image_edit = remove_gridlines(image_edit)
 a = extract_numbers(image_edit)
+'''
+b = read_file("sudoku.txt")
+b = [i for list in b for i in list]
 print(a)
+print(b)
+print(a == b)
+'''
 cv2.imshow("image", image)
 cv2.imshow("edit", image_edit)
 cv2.waitKey(0)

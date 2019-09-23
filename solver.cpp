@@ -159,8 +159,8 @@ void read_file(int sudoku[9][9], std::string file_name) {
 }
 
 void test_big_file(int sudoku[9][9]) {
-    std::ifstream inFile("sudoku.txt");
-    std::ofstream outFile("result.txt");
+    std::ifstream inFile("test_sudoku/sudoku_big.txt");
+    std::ofstream outFile("test_sudoku/result.txt");
     std::string line;
     int count = 0;
     while(std::getline(inFile, line)) {
@@ -191,10 +191,10 @@ void test_big_file(int sudoku[9][9]) {
 int main() 
 {
     int sudoku[9][9];
-    test_big_file(sudoku);
-    //read_file(sudoku, "sudoku.txt");
-    //print_sudoku(sudoku);
-    //solve_sudoku(sudoku);
-    //print_sudoku(sudoku);
+    //test_big_file(sudoku);
+    read_file(sudoku, "sudoku.txt");
+    print_sudoku(sudoku);
+    solve_sudoku(sudoku);
+    print_sudoku(sudoku);
     return 0;
 }

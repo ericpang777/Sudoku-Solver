@@ -1,3 +1,4 @@
+# From https://www.tensorflow.org/beta/tutorials/images/intro_to_cnns
 import tensorflow as tf
 from tensorflow import keras
 
