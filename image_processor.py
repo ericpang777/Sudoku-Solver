@@ -96,9 +96,9 @@ def extract_numbers(image):
                         image_crop = cv2.drawContours(image_crop, contours, k, (0, 0, 0), 3)
 
             ret, image_crop = cv2.threshold(image_crop, 127, 255, cv2.THRESH_BINARY_INV)
-            image_crop = cv2.resize(image_crop, (30, 30))
+            image_crop = cv2.resize(image_crop, (40, 40))
             print(cv2.countNonZero(image_crop))
-            if cv2.countNonZero(image_crop) < 770:
+            if cv2.countNonZero(image_crop) < 1550: # Arbitrary number to filter, less than 40^2 = 1600
                 cv2.imshow((str)(i*9 + j), image_crop)
                 #image_crop = np.asarray(image_crop) For tensorflow model
                 #image_crop = np.expand_dims(image_crop, axis=0)
@@ -118,7 +118,7 @@ def read_file(file_name):
     return sudoku
 
 
-image, image_edit = process_image("img_sudoku/sudoku4.jpg")
+image, image_edit = process_image("img_sudoku/sudoku1.jpg")
 image_edit = extract_sudoku(image_edit, image)
 cv2.imshow("b", image_edit)
 image_edit = remove_gridlines(image_edit)
