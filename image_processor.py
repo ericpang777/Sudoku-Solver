@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
+import pytesseract
+from PIL import Image
 from tensorflow import keras
-from solver import read_file
 
 
 def process_image(src):
@@ -79,6 +80,7 @@ def extract_numbers(image):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     image = cv2.bitwise_not(image)
     grid = []
+
     for i in range(9):
         for j in range(9):
             y = (int)(i * 700/9)
@@ -89,26 +91,39 @@ def extract_numbers(image):
             contours, hierarchy = cv2.findContours(image_crop, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
             if len(contours) > 0:
                 c_max = max(contours, key=cv2.contourArea)
-                print(cv2.contourArea(c_max))
-                for i in range(len(contours)):
-                    if contours[i].all() != c_max.all():
-                        image_crop = cv2.drawContours(image_crop, contours, i, (0, 0, 0), 3)
+                for k in range(len(contours)):
+                    if contours[k].all() != c_max.all():
+                        image_crop = cv2.drawContours(image_crop, contours, k, (0, 0, 0), 3)
 
-            ret, image_crop = cv2.threshold(image_crop, 127, 255, cv2.THRESH_BINARY)
-            cv2.imshow((str)(i*9 + j), image_crop)
-            image_crop = cv2.resize(image_crop, (28, 28))
-            image_crop = np.asarray(image_crop)
-            image_crop = np.expand_dims(image_crop, axis=0)
-            image_crop = np.expand_dims(image_crop, axis=3)
-            grid.append(model.predict(image_crop).argmax())
+            ret, image_crop = cv2.threshold(image_crop, 127, 255, cv2.THRESH_BINARY_INV)
+            image_crop = cv2.resize(image_crop, (30, 30))
+            print(cv2.countNonZero(image_crop))
+            if cv2.countNonZero(image_crop) < 770:
+                cv2.imshow((str)(i*9 + j), image_crop)
+                #image_crop = np.asarray(image_crop) For tensorflow model
+                #image_crop = np.expand_dims(image_crop, axis=0)
+                #image_crop = np.expand_dims(image_crop, axis=3)
+                #grid.append(model.predict(image_crop).argmax())
+                image_crop = cv2.cvtColor(image_crop, cv2.COLOR_BGR2RGB)
+                grid.append(pytesseract.image_to_string(image_crop, config="--psm 10"))
     return grid
 
 
-image, image_edit = process_image("img_sudoku/sudoku1.jpg")
+def read_file(file_name):
+    sudoku = []
+    file = open(file_name, "r")
+    for line in file:
+        split = line.rstrip()[:-1].split(" ")
+        sudoku.append(list(map(int, split)))
+    return sudoku
+
+
+image, image_edit = process_image("img_sudoku/sudoku4.jpg")
 image_edit = extract_sudoku(image_edit, image)
 cv2.imshow("b", image_edit)
 image_edit = remove_gridlines(image_edit)
 a = extract_numbers(image_edit)
+print(a)
 '''
 b = read_file("sudoku.txt")
 b = [i for list in b for i in list]
