@@ -8,11 +8,14 @@
 #include<string>
 #include<vector>
 
-int avail[81]; // Global so the sort can access it
 int LOGPOWER[513]; // Lookup table fof 2^x, LOGPOWER[i] = log_2(i)
+int avail[81]; // Global so the sort can access it
 
-void print_sudoku(int sudoku[9][9]) 
+void print_sudoku(int sudoku[9][9], int output) 
 {
+    if(!output) {
+        return;
+    }
     std::cout << "\n";
     for(int i = 0; i < 9; i++) {
         for(int j = 0; j < 9; j++) {
@@ -24,6 +27,25 @@ void print_sudoku(int sudoku[9][9])
         }
         std::cout << "\n";
     }
+}
+
+int validate_sudoku(int sudoku[9][9]) {
+    for(int i = 0; i < 9; i++) {
+        int row = 0;
+        int col = 0;
+        int subgrid = 0;
+
+        for(int j = 0; j < 9; j++) {
+            row |= 1 << sudoku[i][j];
+            col |= 1 << sudoku[j][i];
+            subgrid |= 1 << sudoku[i/3*3 + j/3][i%3*3 + j%3];
+        }
+        // 1022 is 1s from the 1th to 9th bit, i.e. 0b00000000000000000000001111111110
+        if(row != 1022 || col != 1022 || subgrid != 1022) {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 bool has_duplicate(int sudoku[9][9]) 
@@ -57,30 +79,29 @@ bool has_duplicate(int sudoku[9][9])
     return false;
 }
 
-bool solver(int sudoku[9][9], int data[3][9], std::vector<int> &indices, int idx) 
+bool solver(int sudoku[9][9], int constraint[3][9], std::vector<int> &indices, int idx) 
 {
     int power_of_2;
     int sq_num = indices[idx];
-    int avail = (~(data[0][sq_num/9] | data[1][sq_num%9] | data[2][sq_num/3%3 + sq_num/27*3]) >> 1 << 1) - 4294966272; // 4294966272 is sum of 2^i from i = 10 to 31
-    while(avail != 0) {
-        power_of_2 = avail & -avail;
-        avail ^= power_of_2;
-        if(    (data[0][sq_num/9] & power_of_2)                 == 0
-            && (data[1][sq_num%9] & power_of_2)                 == 0
-            && (data[2][sq_num/3%3 + sq_num/27*3] & power_of_2) == 0)
-        {
-            sudoku[sq_num/9][sq_num%9] = LOGPOWER[power_of_2];
-            data[0][sq_num/9] |= power_of_2;
-            data[1][sq_num%9] |= power_of_2;
-            data[2][sq_num/3%3 + sq_num/27*3] |= power_of_2;
-            if((unsigned)(idx+1) == indices.size() || solver(sudoku, data, indices, idx + 1)) {
-                return true;
-            }
-            sudoku[sq_num/9][sq_num%9] = 0;
-            data[0][sq_num/9] ^= power_of_2;
-            data[1][sq_num%9] ^= power_of_2;
-            data[2][sq_num/3%3 + sq_num/27*3] ^= power_of_2;
+    int to_check = constraint[0][sq_num/9] & constraint[1][sq_num%9] & constraint[2][sq_num/3%3 + sq_num/27*3];
+    
+    while(to_check != 0) {
+        power_of_2 = to_check & -to_check; // Get lowest set bit
+        to_check ^= power_of_2;
+        
+        sudoku[sq_num/9][sq_num%9] = LOGPOWER[power_of_2];
+        constraint[0][sq_num/9] ^= power_of_2;
+        constraint[1][sq_num%9] ^= power_of_2;
+        constraint[2][sq_num/3%3 + sq_num/27*3] ^= power_of_2;
+
+        if((unsigned)(idx+1) == indices.size() || solver(sudoku, constraint, indices, idx + 1)) {
+            return true;
         }
+        
+        sudoku[sq_num/9][sq_num%9] = 0;
+        constraint[0][sq_num/9] |= power_of_2;
+        constraint[1][sq_num%9] |= power_of_2;
+        constraint[2][sq_num/3%3 + sq_num/27*3] |= power_of_2;
     }
     return false;
 }
@@ -89,10 +110,65 @@ bool avail_compare(int a, int b)
 {
     a = avail[a];
     b = avail[b];
-    return __builtin_popcount(a) > __builtin_popcount(b);
+    return __builtin_popcount(a) < __builtin_popcount(b);
 }
 
-void solve_sudoku(int sudoku[9][9]) 
+int set_up(int sudoku[9][9], int constraint[3][9], std::vector<int> &indices) 
+{
+    //memset(sudoku, 0, sizeof(sudoku)); Not needed since complete array gets rewritten if needed
+    // Set all values in constraint to 1022
+    for(int i = 0; i < 3; i++) {
+        for(int j = 0; j < 9; j++) {
+            constraint[i][j] = 1022; // 1022 is 1s from the 1th to 9th bit, i.e. 0b00000000000000000000001111111110
+        }
+    }
+    indices.clear();
+    // Set constraints
+    for(int i = 0; i < 9; i++) {
+        for(int j = 0; j < 9; j++) {
+            // Values on index 1 to 9 inclusive will be updated
+            // AND the current value with number with all 1s except at the sudoku[i][j]th index
+            constraint[0][i] &= ~(1 << sudoku[i][j]); 
+            constraint[1][i] &= ~(1 << sudoku[j][i]);
+            constraint[2][i] &= ~(1 << sudoku[i/3*3 + j/3][i%3*3 + j%3]);
+        }
+    }
+
+    // Fill indices with combined constraints of empty squares
+    for(int i = 0; i < 81; i++) {
+        if(sudoku[i/9][i%9] == 0) {
+            indices.push_back(i);
+            avail[i] = constraint[0][i/9] & constraint[1][i%9] & constraint[2][i/3%3 + i/27*3];
+        }
+    }
+    // Would indicate either completed sudoku or unsolvable sudoku
+    if(indices.size() == 0)
+        return 0;
+    
+    // Sort indices by increasing number of 1s, so squares with least number of possible numbers are first
+    std::sort(indices.begin(), indices.end(), avail_compare);
+    return 1;
+}
+
+void parse_dash_line(int sudoku[9][9], std::string line) {
+    int i = 0; // Index in sudoku
+    int j = 0; // Index in line
+    while(i < 81) {
+        if(line[j] == ' ' || line[j] == '\r' || line[j] == '\n') {
+            j++;
+            continue;
+        }
+        if(line[j] == '-') {
+            sudoku[i/9][i%9] = 0;
+        } else {
+            sudoku[i/9][i%9] = (int)line[j] - 48; // Convert char representation to int
+        }
+        i++;
+        j++;
+    }
+}
+
+void solve_sudoku(int time, int output, std::string filename, std::string format) 
 {
     // Check nums not in 0-9
     //for(int i = 0; i < 9; i++) {
@@ -109,55 +185,50 @@ void solve_sudoku(int sudoku[9][9])
         return;
     }
     */
-
-    // Store numbers of each row/col/subgrid as 101010010, meaning whether 987654321 are in, on [9-1], avoid [8-0] to not have 1 << n-1
-    // Data stored as row, col, subgrid as [0], [1], [2] respectively
-    int data[3][9];
-    memset(data, 0, sizeof(data));
-    for(int i = 0; i < 9; i++) {
-        for(int j = 0; j < 9; j++) {
-            data[0][i] |= (1 << sudoku[i][j]); 
-            data[1][i] |= (1 << sudoku[j][i]);
-            data[2][i] |= (1 << sudoku[i/3*3 + j/3][i%3*3 + j%3]);
-        }
-    }
-    for(int i = 0; i < 3; i++) 
-        for(int j = 0; j  < 9; j++) 
-            data[i][j] = data[i][j] >> 1 << 1;
-    
+    // Set up table for log_2(x)
     int powers[9] = {2, 4, 8, 16, 32, 64, 128, 256, 512};
     for(int i = 0; i < 9; i++) {
         LOGPOWER[powers[i]] = i+1;
     }
 
+    int sudoku[9][9];
+    // Store numbers of each row/col/subgrid as 101010010, meaning whether 987654321 are in the region, on [9 to 1], and not [8 to 0] to not have to use 1 << n-1
+    // constraint stored as row, col, subgrid as [0], [1], [2] respectively
+    int constraint[3][9];
+    // List of all indices in the sudoku that are empty
     std::vector<int> indices;
-    for(int i = 0; i < 81; i++) {
-        if(sudoku[i/9][i%9] == 0) {
-            indices.push_back(i);
-            avail[i] = data[0][i/9] | data[1][i%9] | data[2][i/3%3 + i/27*3];
-        }
-    }
-    if(indices.size() == 0)
-        return;
-
-    std::sort(indices.begin(), indices.end(), avail_compare);
     int copy[9][9];
-    memcpy(copy, sudoku, sizeof(int) * 81);
-    if(solver(copy, data, indices, 0)) {
-        memcpy(sudoku, copy, sizeof(int) * 81);
-    }
-}
 
-void read_file(int sudoku[9][9], std::string file_name) {
-    std::ifstream inFile(file_name);
+    std::ifstream inFile(filename);
     std::string line;
-    int i = 0;
-    while(std::getline(inFile, line, ',')) {
-        sudoku[i/9][i%9] = std::stoi(line);    
-        i++;
-    }
+    //int count = 0;
+    if(format.compare("dash") == 0) {
+        while(std::getline(inFile, line, ',')) {
+            parse_dash_line(sudoku, line);
+            if(!set_up(sudoku, constraint, indices)) {
+                print_sudoku(sudoku, output);
+            } else {
+                for(int i = 0; i < 9; i++) {
+                    memcpy(copy[i], sudoku[i], sizeof(int)*9);
+                }
+                print_sudoku(sudoku, output);
+                if(solver(sudoku, constraint, indices, 0)) {
+                    print_sudoku(sudoku, output);
+                    //std::cout << validate_sudoku(sudoku) << "\n";
+                } else {
+                    print_sudoku(copy, output);
+                    //std::cout << validate_sudoku(sudoku) << "\n";
+
+                }
+                
+            }
+        }
+    } else if(format.compare("dot") == 0) {
+
+    }    
 }
 
+/*
 void test_big_file(int sudoku[9][9]) {
     std::ifstream inFile("test_sudoku/sudoku_big.txt");
     std::ofstream outFile("test_sudoku/result.txt");
@@ -185,16 +256,28 @@ void test_big_file(int sudoku[9][9]) {
     }  
     std::cout << count << "ms";
     inFile.close();
-    //outFile.close();
-}
+    outFile.close();
+}*/
 
-int main() 
+/*
+ * ./solver [-time] <output> <filename> <format>
+ */ 
+int main(int argc, char** argv) 
 {
-    int sudoku[9][9];
-    //test_big_file(sudoku);
-    read_file(sudoku, "sudoku.txt");
-    print_sudoku(sudoku);
-    solve_sudoku(sudoku);
-    print_sudoku(sudoku);
+    if(argc == 4) {
+        int time = 0;
+        int output = std::stoi(argv[1]);
+        std::string filename = argv[2];
+        std::string format = argv[3];
+        solve_sudoku(time, output, filename, format);
+    } else if(argc == 5) {
+        int time = 1;
+        int output = std::stoi(argv[2]);
+        std::string filename = argv[3];
+        std::string format = argv[4];
+        solve_sudoku(time, output, filename, format);
+    } else {
+        std::cout << "Usage: solver [-time] <output> <filename> <format>";
+    }
     return 0;
 }

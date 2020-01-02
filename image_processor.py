@@ -100,7 +100,8 @@ def extract_numbers(image):
             print(cv2.countNonZero(image_crop))
             if cv2.countNonZero(image_crop) < 1550: # Arbitrary number to filter, less than 40^2 = 1600
                 cv2.imshow((str)(i*9 + j), image_crop)
-                #image_crop = np.asarray(image_crop) For tensorflow model
+                # For Tensorflow model
+                #image_crop = np.asarray(image_crop)
                 #image_crop = np.expand_dims(image_crop, axis=0)
                 #image_crop = np.expand_dims(image_crop, axis=3)
                 #grid.append(model.predict(image_crop).argmax())
