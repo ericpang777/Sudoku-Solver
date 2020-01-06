@@ -8,28 +8,40 @@
 #include<string>
 #include<vector>
 
+const std::string DASH = "dash";
+const std::string DOT = "dot";
+
 int LOGPOWER[513]; // Lookup table fof 2^x, LOGPOWER[i] = log_2(i)
 int avail[81]; // Global so the sort can access it
 
-void print_sudoku(int sudoku[9][9], int output) 
+void print_sudoku(int sudoku[9][9], int output, std::string format) 
 {
     if(!output) {
         return;
     }
-    std::cout << "\n";
-    for(int i = 0; i < 9; i++) {
-        for(int j = 0; j < 9; j++) {
-            if(sudoku[i][j] == 0) {
-                std::cout << "-  ";
-            } else {
-                std::cout << sudoku[i][j] << "  ";
-            }
-        }
+    if(format.compare(DASH) == 0) {
         std::cout << "\n";
+        for(int i = 0; i < 9; i++) {
+            for(int j = 0; j < 9; j++) {
+                if(sudoku[i][j] == 0) {
+                    std::cout << "-  ";
+                } else {
+                    std::cout << sudoku[i][j] << "  ";
+                }
+            }
+            std::cout << "\n";
+        }
+    } else if(format.compare(DOT) == 0) {
+        char s[82];
+        for(int i = 0; i < 81; i++) {
+            s[i] = (char)(sudoku[i/9][i%9] + 48);
+        }
+        s[81] = '\0';
+        std::cout << s;
     }
 }
 
-int validate_sudoku(int sudoku[9][9]) {
+bool validate_sudoku(int sudoku[9][9]) {
     for(int i = 0; i < 9; i++) {
         int row = 0;
         int col = 0;
@@ -42,42 +54,12 @@ int validate_sudoku(int sudoku[9][9]) {
         }
         // 1022 is 1s from the 1th to 9th bit, i.e. 0b00000000000000000000001111111110
         if(row != 1022 || col != 1022 || subgrid != 1022) {
-            return 0;
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
-bool has_duplicate(int sudoku[9][9]) 
-{
-    for(int i = 0; i < 9; i++) {
-        int row_seen = 0;
-        int col_seen = 0;
-        int subgrid_seen = 0;
-
-        for(int j = 0; j < 9; j++) {
-            if(sudoku[i][j] != 0) {
-                // If AND is > 0, this means two bits are the same at some point
-                if((row_seen & (1 << sudoku[i][j])) > 0) 
-                    return true;
-                row_seen |= 1 << sudoku[i][j];
-            }
-
-            if(sudoku[j][i] != 0) {
-                if((col_seen & (1 << sudoku[j][i])) > 0) 
-                    return true;
-                col_seen |= 1 << sudoku[j][i];
-            }
-
-            if(sudoku[i/3*3 + j/3][i%3*3 + j%3] != 0) {
-                if((subgrid_seen & (1 << sudoku[i/3*3 + j/3][i%3*3 + j%3])) > 0) 
-                    return true;
-                subgrid_seen |= 1 << sudoku[i/3*3 + j/3][i%3*3 + j%3];
-            }
-        }
-    }
-    return false;
-}
 
 bool solver(int sudoku[9][9], int constraint[3][9], std::vector<int> &indices, int idx) 
 {
@@ -87,19 +69,22 @@ bool solver(int sudoku[9][9], int constraint[3][9], std::vector<int> &indices, i
     
     while(to_check != 0) {
         power_of_2 = to_check & -to_check; // Get lowest set bit
-        to_check ^= power_of_2;
+        to_check ^= power_of_2; // Remove the lowest set bit
         
-        sudoku[sq_num/9][sq_num%9] = LOGPOWER[power_of_2];
-        constraint[0][sq_num/9] ^= power_of_2;
-        constraint[1][sq_num%9] ^= power_of_2;
+        sudoku[sq_num/9][sq_num%9] = LOGPOWER[power_of_2]; // Set square to index of that bit, so log it
+        constraint[0][sq_num/9] ^= power_of_2; // Update constraints
+        constraint[1][sq_num%9] ^= power_of_2; 
         constraint[2][sq_num/3%3 + sq_num/27*3] ^= power_of_2;
 
+        // Recursive call onto the next square
+        // Ends when either end of board is reached
         if((unsigned)(idx+1) == indices.size() || solver(sudoku, constraint, indices, idx + 1)) {
             return true;
         }
-        
+
+        // Backtrack by resetting values to what they were
         sudoku[sq_num/9][sq_num%9] = 0;
-        constraint[0][sq_num/9] |= power_of_2;
+        constraint[0][sq_num/9] |= power_of_2; // Re-update constraints
         constraint[1][sq_num%9] |= power_of_2;
         constraint[2][sq_num/3%3 + sq_num/27*3] |= power_of_2;
     }
@@ -113,7 +98,7 @@ bool avail_compare(int a, int b)
     return __builtin_popcount(a) < __builtin_popcount(b);
 }
 
-int set_up(int sudoku[9][9], int constraint[3][9], std::vector<int> &indices) 
+bool set_up(int sudoku[9][9], int constraint[3][9], std::vector<int> &indices) 
 {
     //memset(sudoku, 0, sizeof(sudoku)); Not needed since complete array gets rewritten if needed
     // Set all values in constraint to 1022
@@ -143,11 +128,11 @@ int set_up(int sudoku[9][9], int constraint[3][9], std::vector<int> &indices)
     }
     // Would indicate either completed sudoku or unsolvable sudoku
     if(indices.size() == 0)
-        return 0;
+        return false;
     
     // Sort indices by increasing number of 1s, so squares with least number of possible numbers are first
     std::sort(indices.begin(), indices.end(), avail_compare);
-    return 1;
+    return true;
 }
 
 void parse_dash_line(int sudoku[9][9], std::string line) {
@@ -168,23 +153,20 @@ void parse_dash_line(int sudoku[9][9], std::string line) {
     }
 }
 
+void parse_dot_line(int sudoku[9][9], std::string line) {
+    line = line.substr(0, line.length()-1);
+    for(int i = 0; i < 81; i++) {
+        if(line[i] == '.') {
+            sudoku[i/9][i%9] = 0;
+        }
+        else {       
+            sudoku[i/9][i%9] = (int)line[i] - 48;
+        }
+    }
+}
+
 void solve_sudoku(int time, int output, std::string filename, std::string format) 
 {
-    // Check nums not in 0-9
-    //for(int i = 0; i < 9; i++) {
-    //    for(int j = 0; j < 9; j++) {
-    //       if(sudoku[i][j] < 0 || 9 < sudoku[i][j]) {
-    //            return;
-    //        }
-    //    }
-    //}
-
-    // Check dupliates
-    /*
-    if(has_duplicate(sudoku)) {
-        return;
-    }
-    */
     // Set up table for log_2(x)
     int powers[9] = {2, 4, 8, 16, 32, 64, 128, 256, 512};
     for(int i = 0; i < 9; i++) {
@@ -201,65 +183,71 @@ void solve_sudoku(int time, int output, std::string filename, std::string format
 
     std::ifstream inFile(filename);
     std::string line;
-    //int count = 0;
-    if(format.compare("dash") == 0) {
+    int count = 0;
+    if(format.compare(DASH) == 0) {
         while(std::getline(inFile, line, ',')) {
             parse_dash_line(sudoku, line);
             if(!set_up(sudoku, constraint, indices)) {
-                print_sudoku(sudoku, output);
+                print_sudoku(sudoku, output, DASH);
             } else {
                 for(int i = 0; i < 9; i++) {
                     memcpy(copy[i], sudoku[i], sizeof(int)*9);
                 }
-                print_sudoku(sudoku, output);
-                if(solver(sudoku, constraint, indices, 0)) {
-                    print_sudoku(sudoku, output);
+                print_sudoku(sudoku, output, DASH);
+                std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+                bool result = solver(sudoku, constraint, indices, 0);
+                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+                if(result) {
+                    print_sudoku(sudoku, output, DASH);
                     //std::cout << validate_sudoku(sudoku) << "\n";
                 } else {
-                    print_sudoku(copy, output);
+                    print_sudoku(copy, output, DASH);
                     //std::cout << validate_sudoku(sudoku) << "\n";
-
                 }
+                if(output) {
+                    std::cout << "time=" << std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count() << "ms" << std::endl;
+                }
+                count += std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count();
                 
             }
         }
-    } else if(format.compare("dot") == 0) {
-
+        if(output) {
+            std::cout << "Total time=" << count << "ms" << std::endl;
+        }
+    } else if(format.compare(DOT) == 0) {
+        while(std::getline(inFile, line)) {
+            line = line.substr(0, line.length()-1); // Remove comma
+            parse_dot_line(sudoku, line);
+            if(!set_up(sudoku, constraint, indices)) {
+                print_sudoku(sudoku, output, DOT);
+            } else {
+                for(int i = 0; i < 9; i++) {
+                    memcpy(copy[i], sudoku[i], sizeof(int)*9);
+                }   
+                std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+                bool result = solver(sudoku, constraint, indices, 0);
+                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+                if(result) {
+                    print_sudoku(sudoku, output, DOT);
+                    //std::cout << validate_sudoku(sudoku) << "\n";
+                } else {
+                    print_sudoku(copy, output, DOT);
+                    //std::cout << validate_sudoku(sudoku) << "\n";
+                }
+                if(output) {
+                    std::cout << " | time=" << std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count() << "ms" << std::endl;
+                }
+                count += std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count();
+            }
+             
+        }
+        if(output) {
+            std::cout << "Total time=" << count << "ms" << std::endl;
+        }
     }    
 }
 
-/*
-void test_big_file(int sudoku[9][9]) {
-    std::ifstream inFile("test_sudoku/sudoku_big.txt");
-    std::ofstream outFile("test_sudoku/result.txt");
-    std::string line;
-    int count = 0;
-    while(std::getline(inFile, line)) {
-        line = line.substr(0, line.length()-1);
-        for(int i = 0; i < 81; i++) {
-            if(line[i] == '.') 
-                sudoku[i/9][i%9] = 0;
-            else       
-                sudoku[i/9][i%9] = (int)line[i] - 48;
-        }
-        
-        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-        solve_sudoku(sudoku);
-        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        char s[81];
-        for(int i = 0; i < 81; i++) {
-            s[i] = (char)(sudoku[i/9][i%9] + 48);
-        }
-        outFile << s << ", time=" << std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count() << "ms" << std::endl;
-        count += std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count();
-        
-    }  
-    std::cout << count << "ms";
-    inFile.close();
-    outFile.close();
-}*/
-
-/*
+/**
  * ./solver [-time] <output> <filename> <format>
  */ 
 int main(int argc, char** argv) 
