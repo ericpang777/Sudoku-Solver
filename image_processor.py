@@ -76,7 +76,7 @@ def remove_gridlines(image):
 
 
 def extract_numbers(image):
-    model = keras.models.load_model("models/mnist_model.h5")
+    #model = keras.models.load_model("models/mnist_model.h5")
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     image = cv2.bitwise_not(image)
     grid = []
@@ -97,9 +97,7 @@ def extract_numbers(image):
 
             ret, image_crop = cv2.threshold(image_crop, 127, 255, cv2.THRESH_BINARY_INV)
             image_crop = cv2.resize(image_crop, (40, 40))
-            print(cv2.countNonZero(image_crop))
             if cv2.countNonZero(image_crop) < 1550: # Arbitrary number to filter, less than 40^2 = 1600
-                cv2.imshow((str)(i*9 + j), image_crop)
                 # For Tensorflow model
                 #image_crop = np.asarray(image_crop)
                 #image_crop = np.expand_dims(image_crop, axis=0)
@@ -118,21 +116,14 @@ def read_file(file_name):
         sudoku.append(list(map(int, split)))
     return sudoku
 
-
-image, image_edit = process_image("img_sudoku/sudoku1.jpg")
-image_edit = extract_sudoku(image_edit, image)
-cv2.imshow("b", image_edit)
-image_edit = remove_gridlines(image_edit)
-a = extract_numbers(image_edit)
-print(a)
-'''
-b = read_file("sudoku.txt")
-b = [i for list in b for i in list]
-print(a)
-print(b)
-print(a == b)
-'''
-cv2.imshow("image", image)
-cv2.imshow("edit", image_edit)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+if  __name__ == "__main__":
+    image, image_edit = process_image("img_sudoku/sudoku1.jpg")
+    image_edit = extract_sudoku(image_edit, image)
+    cv2.imshow("b", image_edit)
+    image_edit = remove_gridlines(image_edit)
+    a = extract_numbers(image_edit)
+    print(a)
+    cv2.imshow("image", image)
+    cv2.imshow("edit", image_edit)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
